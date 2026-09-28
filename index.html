@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boom Boom Manager App</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- PWA Manifest Link -->
+    <link rel="manifest" href="manifest.json">
+    <style> body { font-family: 'Plus Jakarta Sans', sans-serif; } </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 antialiased pb-16">
+
+    <!-- APP HEADER -->
+    <header class="bg-zinc-900 border-b border-zinc-800 p-4 sticky top-0 z-50">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="font-black text-lg text-white">Boom Boom <span class="text-orange-500">Manager</span></h1>
+                <p class="text-xs text-zinc-400">Inventory & Daily Sales Logger</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- Custom Install Button -->
+                <button id="install-btn" class="hidden text-xs bg-orange-500 hover:bg-orange-400 text-black font-extrabold px-3 py-1.5 rounded-lg shadow-lg cursor-pointer transition flex items-center gap-1">
+                    <i class="fa-solid fa-download"></i> Install
+                </button>
+                <button onclick="resetAllData()" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg border border-zinc-700 cursor-pointer">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-6">
+
+        <!-- TABS -->
+        <div class="grid grid-cols-2 gap-2 bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800">
+            <button onclick="switchTab('inventory')" id="tab-inventory" class="py-2.5 rounded-xl font-bold text-xs bg-orange-500 text-black transition cursor-pointer">Live Inventory</button>
+            <button onclick="switchTab('calculator')" id="tab-calculator" class="py-2.5 rounded-xl font-bold text-xs text-zinc-400 transition cursor-pointer">Daily Sales & Logs</button>
+        </div>
+
+        <!-- SECTION 1: INVENTORY & SALES ENTRY -->
+        <section id="section-inventory" class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="font-bold text-sm text-zinc-300 uppercase tracking-wider">Tap to Record Sales (-)</h2>
+                <span class="text-xs text-orange-400 font-medium">Auto-saves to phone</span>
+            </div>
+
+            <div id="inventory-list" class="space-y-3">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Add New Item Form -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mt-6">
+                <h3 class="font-bold text-xs text-zinc-400 mb-3 uppercase">Add New Menu Item</h3>
+                <div class="space-y-3">
+                    <input type="text" id="new-item-name" placeholder="Item Name (e.g. Cheese Partha)" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500">
+                    <div class="flex gap-2">
+                        <input type="number" id="new-item-stock" placeholder="Initial Stock Qty" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500">
+                        <input type="number" id="new-item-price" placeholder="Price (Rs.)" class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500">
+                    </div>
+                    <button onclick="addNewItem()" class="w-full bg-orange-500 hover:bg-orange-400 text-black font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">Add Item</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: DAILY SALES CALCULATOR & LOGGER -->
+        <section id="section-calculator" class="space-y-4 hidden">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+                <h2 class="font-bold text-sm text-zinc-300 uppercase tracking-wider mb-4">Today's Shift Calculator</h2>
+                
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between py-2 border-b border-zinc-800">
+                        <span class="text-zinc-400">Total Items Sold:</span>
+                        <span id="calc-sold-units" class="font-bold text-white">0 units</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-zinc-800">
+                        <span class="text-zinc-400">Total Revenue Generated:</span>
+                        <span id="calc-total-revenue" class="font-bold text-orange-400 text-base">Rs. 0</span>
+                    </div>
+                </div>
+
+                <button onclick="logDailySales()" class="w-full mt-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition cursor-pointer shadow-lg shadow-emerald-600/20">
+                    <i class="fa-solid fa-clipboard-check mr-1"></i> Close Shift & Save Log
+                </button>
+            </div>
+
+            <!-- Past Logs -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+                <h3 class="font-bold text-xs text-zinc-400 uppercase tracking-wider mb-3">Saved Daily Shift Logs</h3>
+                <div id="logs-container" class="space-y-2 text-xs text-zinc-400">
+                    <p>No shift logs recorded yet.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- APP JAVASCRIPT -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('install-btn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.classList.remove('hidden');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            installBtn.classList.add('hidden');
+        });
+
+        const defaultInventory = [
+            { id: 1, name: "Malai Boti Roll", stock: 25, soldToday: 0, price: 350 },
+            { id: 2, name: "Seekh Kabab Partha", stock: 15, soldToday: 0, price: 300 },
+            { id: 3, name: "Cheese Lava Roll", stock: 10, soldToday: 0, price: 450 },
+            { id: 4, name: "Chicken Tikka Partha", stock: 20, soldToday: 0, price: 320 }
+        ];
+
+        let inventory = JSON.parse(localStorage.getItem('boom_inventory')) || defaultInventory;
+        let salesLogs = JSON.parse(localStorage.getItem('boom_logs')) || [];
+
+        function saveData() {
+            localStorage.setItem('boom_inventory', JSON.stringify(inventory));
+            localStorage.setItem('boom_logs', JSON.stringify(salesLogs));
+            renderInventory();
+            updateCalculator();
+        }
+
+        function renderInventory() {
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = '';
+            inventory.forEach(item => {
+                list.innerHTML += `
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-sm text-white">${item.name}</h3>
+                            <span class="text-xs text-orange-400 font-semibold">Rs. ${item.price} each</span> | 
+                            <span class="text-xs text-zinc-400">Sold: <strong class="text-emerald-400">${item.soldToday}</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="recordSale(${item.id})" class="bg-orange-500 hover:bg-orange-400 text-black font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer shadow-md">
+                                <i class="fa-solid fa-plus mr-1"></i> Sold
+                            </button>
+                            <div class="text-right pl-2 border-l border-zinc-800">
+                                <span class="block text-xs text-zinc-500">Left</span>
+                                <span class="font-black text-base text-white">${item.stock}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function recordSale(id) {
+            const item = inventory.find(i => i.id === id);
+            if (item && item.stock > 0) {
+                item.stock -= 1;
+                item.soldToday += 1;
+                saveData();
+            } else {
+                alert("Out of stock!");
+            }
+        }
+
+        function addNewItem() {
+            const name = document.getElementById('new-item-name').value.trim();
+            const stock = parseInt(document.getElementById('new-item-stock').value) || 0;
+            const price = parseInt(document.getElementById('new-item-price').value) || 0;
+
+            if (!name) {
+                alert("Please enter an item name.");
+                return;
+            }
+
+            inventory.push({ id: Date.now(), name, stock, soldToday: 0, price });
+            document.getElementById('new-item-name').value = '';
+            document.getElementById('new-item-stock').value = '';
+            document.getElementById('new-item-price').value = '';
+            saveData();
+        }
+
+        function updateCalculator() {
+            let totalSold = inventory.reduce((sum, item) => sum + item.soldToday, 0);
+            let totalRev = inventory.reduce((sum, item) => sum + (item.soldToday * item.price), 0);
+
+            document.getElementById('calc-sold-units').innerText = totalSold + ' units sold';
+            document.getElementById('calc-total-revenue').innerText = 'Rs. ' + totalRev;
+
+            const logsContainer = document.getElementById('logs-container');
+            if (salesLogs.length === 0) {
+                logsContainer.innerHTML = '<p class="text-zinc-600">No shift logs recorded yet.</p>';
+            } else {
+                logsContainer.innerHTML = '';
+                salesLogs.forEach((log) => {
+                    logsContainer.innerHTML += `
+                        <div class="flex justify-between items-center bg-zinc-950 p-3 rounded-xl border border-zinc-800">
+                            <div>
+                                <span class="block text-white font-bold">${log.date}</span>
+                                <span class="text-xs text-zinc-500">${log.itemsCount} units sold</span>
+                            </div>
+                            <span class="text-orange-400 font-black text-sm">${log.revenue}</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function logDailySales() {
+            let totalSold = inventory.reduce((sum, item) => sum + item.soldToday, 0);
+            let totalRevVal = inventory.reduce((sum, item) => sum + (item.soldToday * item.price), 0);
+            
+            if (totalSold === 0) {
+                alert("No sales recorded for this shift yet!");
+                return;
+            }
+
+            const dateStr = new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+            salesLogs.unshift({ date: dateStr, itemsCount: totalSold, revenue: 'Rs. ' + totalRevVal });
+
+            // Reset daily counters after shift log
+            inventory.forEach(item => item.soldToday = 0);
+            saveData();
+            alert("Shift closed and daily sales successfully calculated & logged!");
+        }
+
+        function switchTab(tab) {
+            if (tab === 'inventory') {
+                document.getElementById('section-inventory').classList.remove('hidden');
+                document.getElementById('section-calculator').classList.add('hidden');
+                document.getElementById('tab-inventory').className = "py-2.5 rounded-xl font-bold text-xs bg-orange-500 text-black transition cursor-pointer";
+                document.getElementById('tab-calculator').className = "py-2.5 rounded-xl font-bold text-xs text-zinc-400 transition cursor-pointer";
+            } else {
+                document.getElementById('section-calculator').classList.remove('hidden');
+                document.getElementById('section-inventory').classList.add('hidden');
+                document.getElementById('tab-calculator').className = "py-2.5 rounded-xl font-bold text-xs bg-orange-500 text-black transition cursor-pointer";
+                document.getElementById('tab-inventory').className = "py-2.5 rounded-xl font-bold text-xs text-zinc-400 transition cursor-pointer";
+            }
+        }
+
+        function resetAllData() {
+            if (confirm("Reset inventory and logs?")) {
+                inventory = JSON.parse(JSON.stringify(defaultInventory));
+                salesLogs = [];
+                saveData();
+            }
+        }
+
+        renderInventory();
+        updateCalculator();
+    </script>
+</body>
+</html>
